@@ -1,0 +1,2 @@
+# CQpro
+Just for learning
