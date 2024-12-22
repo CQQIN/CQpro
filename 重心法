@@ -1,0 +1,122 @@
+
+from math import sin, asin, cos, radians, fabs, sqrt
+
+
+# 经纬度
+locations = [ [30.54, 120.55], [30.14, 121.55], [31.54, 119.55], [30.94, 120.95], [28.54, 122.55]]
+# 对应点的单位成本
+cost = [0.5, 0.5, 0.75, 0.75, 0.75]
+# 对应点的运输量
+contain = [2000, 3000, 2500, 1000, 1500]
+
+# 上面三个信息个数要相等，比如第一个列表有几个点，成本列表就要有几个，运输量列表也是
+
+
+q = 2   # 欧式距离（不用管，不需要改
+
+
+
+# 绘图
+# def DRAW(locations, center):
+#     for i in range(len(locations)):
+#         plt.scatter(locations[i][0], locations[i][1], marker= '.',color = 'k')
+#         plt.plot( [locations[i][0], center[0]], [locations[i][1], center[1]], linewidth = 0.3, color = 'g')
+#
+#     plt.scatter(center[0], center[1], marker='*', color = 'r')
+#     plt.show()
+
+# 初始质心确定
+def gravity(locations, cost, contain):
+    x1 = 0
+    m = 0
+    y1 = 0
+    for i in range(len(locations)):
+        x1 += locations[i][0]*contain[i]*cost[i]  # 横坐标*运量*单位成本
+        y1 += locations[i][1]*contain[i]*cost[i]    # 横坐标*运量*单位成本
+        m += contain[i] * cost[i]                   # 运量*单位成本
+    x_g = x1/m
+    y_g = y1/m
+    gravity_point = [x_g, y_g]
+    return gravity_point
+# gravity_point0 = gravity(locations, cost, contain)
+# print("初始重心点：",gravity_point0)
+
+# 公式di(k-1)
+def di_k_1(x1,x2, q):
+    EARTH_RADIUS = 6371  # 地球平均半径，6371km
+
+    def hav(theta):
+        s = sin(theta / 2)
+        return s * s
+
+    def get_distance_hav(lat0, lng0, lat1, lng1):
+        "用haversine公式计算球面两点间的距离。"
+        # 经纬度转换成弧度
+        lat0 = radians(lat0)
+        lat1 = radians(lat1)
+        lng0 = radians(lng0)
+        lng1 = radians(lng1)
+
+        dlng = fabs(lng0 - lng1)
+        dlat = fabs(lat0 - lat1)
+        h = hav(dlat) + cos(lat0) * cos(lat1) * hav(dlng)
+        distance = 2 * EARTH_RADIUS * asin(sqrt(h))
+
+        return distance
+
+    d = get_distance_hav(x1[0], x1[1], x2[0], x2[1])
+    return d
+
+# 总成本
+def TC(cost, contain, locations, center, q):
+    tc = 0
+    for i in range(len(locations)):
+        tc += cost[i] * contain[i] * di_k_1(locations[i] , center, q )
+    return tc
+
+# 更新质心
+def update_cneter(cost, contain, locations, center0):
+    x1 = 0
+    y1 = 0
+    m = 0
+    for i in range(len(locations)):
+        x1 += cost[i] * contain[i] * locations[i][0] / di_k_1(center0, locations[i], q)
+        y1 += cost[i] * contain[i] * locations[i][1] / di_k_1(center0, locations[i], q)
+        m += cost[i] * contain[i] / di_k_1(center0, locations[i], q)
+    Xw = x1/m
+    Yw = y1/m
+    new_center = [Xw, Yw]
+    return new_center
+
+# 主函数
+def main():
+    k = 1
+    center0 = gravity(locations, cost, contain)
+    TC0 = TC(cost, contain, locations, center0, q)
+    print("初始中心", center0)
+    print("初始成本", TC0)
+
+    TC_record = [TC0]
+    while True:
+        print("\n第",k,"迭代")
+        k += 1
+        center1 = update_cneter(cost, contain, locations, center0)
+        TC1 = TC(cost, contain, locations, center1, q)
+        TC_record.append(TC1)
+        print("中心", center1)
+        print("成本", TC1)
+
+        center0 = center1
+        if TC1 == TC_record[-2]:
+            break
+
+    return center0, TC_record
+
+Center, TC_record = main()
+# DRAW(locations,Center)
+# plt.plot(TC_record)  # 绘制迭代曲线
+# plt.title("Cost Change")
+# plt.xlabel("Iteration")
+# plt.xlabel("Cost")
+# plt.show()
+
